@@ -1,9 +1,21 @@
 import 'package:flutter/material.dart';
 import './login/login_page.dart';
 import './home/home_page.dart';
+import 'package:logger/logger.dart';
 
 void main() {
-  print(">>>>>>>>>>>>>>>>>>>>>>:run main");
+  var logger = Logger(
+    printer: PrettyPrinter( 
+      methodCount: 0,
+    ),
+  );
+  logger.v('verbose message');
+  logger.d('debug message');
+  logger.i('info message');
+  logger.w('warning message');
+  logger.e('error message');
+  logger.wtf('wft message');
+
   runApp(const MyApp());
 }
 

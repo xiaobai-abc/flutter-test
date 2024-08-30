@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 // import 'package:http/http.dart' as http; // 导入 http 库以发送网络请求
-
 import 'dart:convert'; // 用于 json 编码和解码
+import '../http/index.dart';
 
 class LoginPage extends StatelessWidget {
+  const LoginPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -19,7 +21,7 @@ class LoginPage extends StatelessWidget {
             );
           }),
         ),
-        Center(
+        const Center(
           //  ElevatedButton(
           //   child: Text('Go to home page'),
           //   onPressed: () {
@@ -38,13 +40,15 @@ class LoginPage extends StatelessWidget {
 }
 
 class FormBlock extends StatefulWidget {
+  const FormBlock({super.key});
   @override
+  // ignore: library_private_types_in_public_api
   _FormBlockState createState() => _FormBlockState();
 }
 
 class _FormBlockState extends State<FormBlock> {
-  final usernameController = TextEditingController();
-  final passwordController = TextEditingController();
+  final usernameController = TextEditingController(text: 'admin');
+  final passwordController = TextEditingController(text: '336699');
 
   @override
   void dispose() {
@@ -95,6 +99,7 @@ class _FormBlockState extends State<FormBlock> {
             const SizedBox(height: 28),
             TextField(
               obscureText: true,
+              controller: passwordController,
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^[a-zA-Z0-9]*')),
               ],
@@ -117,18 +122,47 @@ class SubmitButton extends StatelessWidget {
   // final VoidCallback onSubmit;
   final TextEditingController usernameController;
   final TextEditingController passwordController;
+  final httpManager = HttpManager();
 
   SubmitButton({
+    super.key,
     // required this.onSubmit,
     required this.usernameController,
     required this.passwordController,
   });
   // 提交功能
   Future<void> _submit(BuildContext context) async {
-    // 跳转到第二个页面
-    print(">>>>>>>>>>>>>>>>>>>>>>:run _submit");
-    print("username: ${usernameController.text}");
-    print("password: ${passwordController.text}");
+    const url = "/user/login";
+    final data = {
+      "username": usernameController.text,
+      "password": passwordController.text
+    };
+
+    if (data["username"]!.isNotEmpty && data["password"]!.isNotEmpty) {
+      // httpManager.post(url, data: data).then((onValue) {
+      //   print(">>>>>>>>>>>>>>>>>>>>>>:>>>>>>>>>>>>>>>>>>>>>>:run _submit");
+      //   print(onValue);
+      //   print(">>>>>>>>>>>>>>>>>>>>>>:>>>>>>>>>>>>>>>>>>>>>>:run _submit");
+      // });
+
+      httpManager.post("/user/login", data: data).then((onValue) {
+        print(">>>>>>>>>>>>>>>>>>>>>>:>>>>>>>>>>>>>>>>>>>>>>:run _submit");
+        print(onValue);
+        print(">>>>>>>>>>>>>>>>>>>>>>:>>>>>>>>>>>>>>>>>>>>>>:run _submit");
+      }).catchError((err) {
+        print(">>>>>>>>>>>>>>>>>>>>>>:>>>>>>>>>>>>>>>>>>>>>>:error");
+        print(err);
+        print(">>>>>>>>>>>>>>>>>>>>>>:>>>>>>>>>>>>>>>>>>>>>>:error");
+      });
+    } else {
+      if (data["username"]!.isEmpty) {
+        print("Username 为空");
+      }
+      if (data["password"]!.isEmpty) {
+        print("Password 为空");
+      }
+      _showErrorDialog(context, "账号或密码不能为空");
+    }
   }
 
   // 显示错误对话框
@@ -136,7 +170,7 @@ class SubmitButton extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('错误'),
+        // title: const Text('错误'),
         content: Text(message),
         actions: <Widget>[
           TextButton(
