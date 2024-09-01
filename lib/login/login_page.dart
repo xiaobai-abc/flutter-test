@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:logger/logger.dart';
 // import 'package:http/http.dart' as http; // 导入 http 库以发送网络请求
 import 'dart:convert'; // 用于 json 编码和解码
+import 'package:shared_preferences/shared_preferences.dart';
 import '../http/index.dart';
 
 class LoginPage extends StatelessWidget {
@@ -139,20 +141,20 @@ class SubmitButton extends StatelessWidget {
     };
 
     if (data["username"]!.isNotEmpty && data["password"]!.isNotEmpty) {
-      // httpManager.post(url, data: data).then((onValue) {
-      //   print(">>>>>>>>>>>>>>>>>>>>>>:>>>>>>>>>>>>>>>>>>>>>>:run _submit");
-      //   print(onValue);
-      //   print(">>>>>>>>>>>>>>>>>>>>>>:>>>>>>>>>>>>>>>>>>>>>>:run _submit");
-      // });
-
-      httpManager.post("/user/login", data: data).then((onValue) {
-        print(">>>>>>>>>>>>>>>>>>>>>>:>>>>>>>>>>>>>>>>>>>>>>:run _submit");
-        print(onValue);
-        print(">>>>>>>>>>>>>>>>>>>>>>:>>>>>>>>>>>>>>>>>>>>>>:run _submit");
+      final logger = Logger(
+        printer: PrettyPrinter(
+          methodCount: 0,
+        ),
+      );
+      httpManager.post("/user/login", data: data).then((onValue) async {
+        final data = onValue.data['data'];
+        // logger.v();
+        final token = data['token'];
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        prefs.setString('token', token);
+        Navigator.of(context).pushReplacementNamed('/home');
       }).catchError((err) {
-        print(">>>>>>>>>>>>>>>>>>>>>>:>>>>>>>>>>>>>>>>>>>>>>:error");
         print(err);
-        print(">>>>>>>>>>>>>>>>>>>>>>:>>>>>>>>>>>>>>>>>>>>>>:error");
       });
     } else {
       if (data["username"]!.isEmpty) {
