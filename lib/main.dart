@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import './login/login_page.dart';
 import './home/home_page.dart';
+import './home/test.dart';
 // import 'package:logger/logger.dart';
 
 void main() {
   // var logger = Logger(
-  //   printer: PrettyPrinter( 
+  //   printer: PrettyPrinter(
   //     methodCount: 0,
   //   ),
   // );
@@ -31,10 +32,11 @@ class MyApp extends StatelessWidget {
           // colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
-        initialRoute: '/',
+        initialRoute: '/home',
         routes: {
           '/': (context) => LoginPage(),
           '/home': (context) => HomePage(),
+          '/test': (context) => TestHomePage(),
         });
   }
 }
