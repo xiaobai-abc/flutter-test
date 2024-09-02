@@ -1,7 +1,34 @@
 import 'package:flutter/material.dart';
-import 'OderList.dart';
+import 'package:logger/logger.dart';
+import 'order_list.dart';
+import 'theme_color.dart';
 
-class HomePage extends StatelessWidget {
+import '../http/index.dart';
+
+// 2 备菜 3 出菜
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<int?> _show(BuildContext context) async {
+    return showModalBottomSheet(
+        backgroundColor: Colors.transparent,
+        isDismissible: true,
+        isScrollControlled: true,
+        context: context,
+        builder: (BuildContext context) => const Text("adasd"));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,7 +56,9 @@ class HomePage extends StatelessWidget {
         ),
         actions: [
           TextButton.icon(
-            onPressed: () {},
+            onPressed: () {
+              _show(context); //调用底部弹框
+            },
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xFF828282),
               textStyle: const TextStyle(fontSize: 14),
@@ -54,18 +83,7 @@ class HomePage extends StatelessWidget {
           const SizedBox(width: 40), // 设置右侧间距
         ],
       ),
-      body: Column(children: [
-        // Container(
-        //   height: 60,
-        //   width: double.infinity,
-        //   color: Colors.white,
-        //   child:   ,
-        // )
-        ClickableTextRow(),
-        const Expanded(
-          child: OrderViewState(),
-        )
-      ]),
+      body: BodyView(),
 
       // Container(
       //   width: double.infinity,
@@ -80,19 +98,17 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class ClickableTextRow extends StatefulWidget {
+// 内容
+class BodyView extends StatefulWidget {
+  const BodyView({super.key});
   @override
-  _ClickableTextRowState createState() => _ClickableTextRowState();
+  BodyViewState createState() => BodyViewState();
 }
 
-class TextBlock {
-  final int id;
-  final String text;
-  final int num;
-  TextBlock({required this.id, required this.text, required this.num});
-}
+class BodyViewState extends State<BodyView> {
+  // 颜色
+  final themeColor = ThemeColor();
 
-class _ClickableTextRowState extends State<ClickableTextRow> {
   // 用于跟踪哪个文本被聚焦
   final List<TextBlock> _testList = [
     TextBlock(id: 0, text: "待处理", num: 10),
@@ -111,28 +127,41 @@ class _ClickableTextRowState extends State<ClickableTextRow> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.only(left: 40, right: 40, top: 20, bottom: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(_testList.length, (index) {
-          return TextButton(
-            onPressed: () {
-              _handClickTest(_testList[index].id);
-            },
-            child: Text(
-              "${_testList[index].text}(${_testList[index].num})",
-              style: TextStyle(
-                color: _focusedId == _testList[index].id
-                    ? const Color(0xFFE60012)
-                    : const Color(0xFF4f4f4f), // 根据聚焦状态设置颜色
-                fontSize: 14,
+    return Column(children: [
+      Container(
+        color: themeColor.bgColor,
+        padding:
+            const EdgeInsets.only(left: 40, right: 40, top: 20, bottom: 20),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(_testList.length, (index) {
+            return TextButton(
+              onPressed: () {
+                _handClickTest(_testList[index].id);
+              },
+              child: Text(
+                "${_testList[index].text}(${_testList[index].num})",
+                style: TextStyle(
+                  color: _focusedId == _testList[index].id
+                      ? themeColor.activeColor
+                      : themeColor.textColor, // 根据聚焦状态设置颜色
+                  fontSize: 14,
+                ),
               ),
-            ),
-          );
-        }),
+            );
+          }),
+        ),
       ),
-    );
+      Expanded(
+        child: OrderView(id: _focusedId),
+      )
+    ]);
   }
+}
+
+class TextBlock {
+  final int id;
+  final String text;
+  final int num;
+  TextBlock({required this.id, required this.text, required this.num});
 }

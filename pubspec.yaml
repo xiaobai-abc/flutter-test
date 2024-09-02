@@ -14,9 +14,10 @@ dependencies:
     sdk: flutter
   logger: ^1.0.0
   shared_preferences: ^2.2.3
- 
+  bluetooth_print: ^4.3.0
   cupertino_icons: ^1.0.6
   dio: ^5.6.0
+  fluttertoast: ^8.2.8
 
 dev_dependencies:
   flutter_test:

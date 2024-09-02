@@ -1,16 +1,13 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:jiufu/modules/error_message_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logger/logger.dart';
-// import '../modules/storage.dart' as storage;
 
 class HttpManager {
   final _dio = Dio();
 
   HttpManager() {
-    _dio.options.baseUrl = 'http://192.168.1.106:3000/api';
+    _dio.options.baseUrl = 'https://api-jiufu.meseelink.com';
     _dio.interceptors.add(LogInterceptor());
 
     _dio.interceptors.add(RequestInterceptors());
@@ -43,8 +40,12 @@ class HttpManager {
 
   // post 请求
   Future<Response> post(String url,
-      {Map<String, dynamic>? data, CancelToken? cancelToken}) async {
-    return await _dio.post(url, data: data, cancelToken: cancelToken);
+      {Map<String, dynamic>? data,
+      CancelToken? cancelToken,
+      Options? options}) async {
+    Options requestOptions = options ?? Options();
+    return await _dio.post(url,
+        data: data, cancelToken: cancelToken, options: requestOptions);
   }
 
   // put 请求
@@ -88,8 +89,10 @@ class RequestInterceptors extends Interceptor {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
+    _logger.e(response);
+    _logger.e(">>>>>>>>>>>>>>");
+
     if (response.statusCode != 200 && response.statusCode != 201) {
-      _logger.e(response.data);
       handler.reject(DioException(
           requestOptions: response.requestOptions,
           response: response,
@@ -101,7 +104,7 @@ class RequestInterceptors extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    final exception = HttpException(err.message ?? "error message");
+    // final exception = HttpException(err.message ?? "error message");
     switch (err.type) {
       case DioExceptionType.badResponse:
         {

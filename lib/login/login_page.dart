@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
-// import 'package:http/http.dart' as http; // 导入 http 库以发送网络请求
-
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+
 import '../http/index.dart';
 
 class LoginPage extends StatelessWidget {
@@ -49,8 +49,8 @@ class FormBlock extends StatefulWidget {
 }
 
 class _FormBlockState extends State<FormBlock> {
-  final usernameController = TextEditingController(text: 'admin');
-  final passwordController = TextEditingController(text: '336699');
+  final usernameController = TextEditingController(text: '17666662384');
+  final passwordController = TextEditingController(text: 'fat880718');
 
   @override
   void dispose() {
@@ -126,6 +126,7 @@ class SubmitButton extends StatelessWidget {
   final TextEditingController passwordController;
   final httpManager = HttpManager();
 
+  final snackBar = const SnackBar(content: Text(""));
   SubmitButton({
     super.key,
     // required this.onSubmit,
@@ -134,27 +135,26 @@ class SubmitButton extends StatelessWidget {
   });
   // 提交功能
   Future<void> _submit(BuildContext context) async {
-    const url = "/user/login";
+    const url = "/store/login";
     final data = {
-      "username": usernameController.text,
+      "phone": usernameController.text,
       "password": passwordController.text
     };
 
-    if (data["username"]!.isNotEmpty && data["password"]!.isNotEmpty) {
-      // final logger = Logger(
-      //   printer: PrettyPrinter(
-      //     methodCount: 0,
-      //   ),
-      // );
-      httpManager.post("/user/login", data: data).then((onValue) async {
-        final data = onValue.data['data'];
-        // logger.v();
-        final token = data['token'];
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        prefs.setString('token', token);
-        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+    if (data["phone"]!.isNotEmpty && data["password"]!.isNotEmpty) {
+      httpManager.post(url, data: data).then((onValue) async {
+        final resp = onValue.data;
+        if (resp["code"] == 1) {
+          final token = resp['data']['token'];
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          prefs.setString('token', token);
+          Navigator.of(context)
+              .pushNamedAndRemoveUntil('/home', (route) => false);
+        } else {
+          Fluttertoast.showToast(msg: onValue.data["message"]);
+        }
       }).catchError((err) {
-        print(err);
+        Logger().e(err);
       });
     } else {
       if (data["username"]!.isEmpty) {

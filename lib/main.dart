@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 import './login/login_page.dart';
+import 'package:logger/logger.dart';
 import './home/home_page.dart';
-import './home/test.dart';
-// import 'package:logger/logger.dart';
 
 void main() {
-  // var logger = Logger(
-  //   printer: PrettyPrinter(
-  //     methodCount: 0,
-  //   ),
-  // );
-  // logger.v('verbose message');
-  // logger.d('debug message');
-  // logger.i('info message');
-  // logger.w('warning message');
-  // logger.e('error message');
-  // logger.wtf('wft message');
+  var logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 0,
+    ),
+  );
+  logger.v('verbose message');
+  logger.d('debug message');
+  logger.i('info message');
+  logger.w('warning message');
+  logger.e('error message');
+  logger.wtf('wft message');
 
   runApp(const MyApp());
 }
@@ -34,9 +33,8 @@ class MyApp extends StatelessWidget {
         ),
         initialRoute: '/home',
         routes: {
-          '/': (context) => LoginPage(),
+          '/login': (context) => LoginPage(),
           '/home': (context) => HomePage(),
-          '/test': (context) => TestHomePage(),
         });
   }
 }
