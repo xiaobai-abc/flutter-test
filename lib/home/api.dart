@@ -1,40 +1,47 @@
+import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 import '../http/index.dart';
 import 'type/order.dart';
-import 'package:logger/logger.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
-Future<dynamic> fetchOrderList(int status) async {
+Future<List<Order>> fetchOrderList(
+    int status, int page, BuildContext context) async {
   final httpManager = HttpManager();
-  // final Order a = {} as Order;
 
-  final onValue =
-      await httpManager.get("/store/order/list", params: {"status": status});
-  // var resultList = Order.fromJson();
-  var resultList = onValue.data['data']['data'] as List<Order>;
-  Logger(printer: PrettyPrinter(methodCount: 0)).d(resultList);
-  Logger(printer: PrettyPrinter(methodCount: 0)).d(resultList is List);
-  Logger(printer: PrettyPrinter(methodCount: 0)).d(resultList is Map);
+  // await httpManager.get("/store/order/list", params: {"status": status});
+  return await httpManager.get("/store/order/list",
+      params: {"status": status, "page": page}).then((onValue) {
+    if (onValue.data["code"] == 1) {
+      // 确保 resultList 是 List 类型，并进行类型转换
+      var resultList = onValue.data['data']['data'] as List<dynamic>;
 
-  Logger(printer: PrettyPrinter(methodCount: 0)).v(">>>>>>>>>>>>>>>>>>>>>>>>>");
-  return 1;
+      // 将 resultList 转换为 Order 类型的列表
+      List<Order> orders =
+          resultList.map((json) => Order.fromJson(json)).toList();
+      return orders;
+    } else {
+      // Navigator.of(context).pop();
+      // 返回登录页
+      // 提示
+      Fluttertoast.showToast(msg: onValue.data["message"]);
+      Navigator.of(context).pushReplacementNamed('/login');
+      return [];
+    }
+  });
+}
 
-  //     .then((onValue) {
-  //   if (onValue.data["code"] == 1) {
-  //     var resultList = onValue.data['data']['data'];
-  //     Logger(printer: PrettyPrinter(methodCount: 0)).d(resultList);
-  //     Logger(printer: PrettyPrinter(methodCount: 0))
-  //         .v(">>>>>>>>>>>>>>>>>>>>>>>>>");
-  //     // setState(() {
-  //     orders = resultList;
-  //     // });
-  //   } else {
-  //     // Navigator.of(context).pop();
-  //     // 返回登录页
-  //     // 提示
-  //     Fluttertoast.showToast(msg: onValue.data["message"]);
-  //     Navigator.of(context).pushReplacementNamed('/login');
-  //   }
-  // }).catchError((onError) {
-  //   Logger().e(onError);
-  //   Logger().e("onError >>>>>>>>>>>>>>>>>>");
-  // });
+// 点击备菜
+Future fetchOrderHandler({
+  required int id,
+  required int status,
+  required BuildContext context,
+}) async {
+  final httpManager = HttpManager();
+  return httpManager.post("/store/order/handle",
+      data: {"order_id": id, "status": status}).then((onValue) {
+    Logger(printer: PrettyPrinter(methodCount: 0)).i(onValue);
+
+    if (onValue.data["code"] == 1) {
+    } else {}
+  });
 }

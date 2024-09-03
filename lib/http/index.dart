@@ -8,6 +8,7 @@ class HttpManager {
 
   HttpManager() {
     _dio.options.baseUrl = 'https://api-jiufu.meseelink.com';
+    // _dio.options.baseUrl = 'http://192.168.1.106:3000';
     _dio.interceptors.add(LogInterceptor());
 
     _dio.interceptors.add(RequestInterceptors());
@@ -27,12 +28,12 @@ class HttpManager {
   //       queryParameters: params, cancelToken: cancelToken);
   // }
   // get 请求
-  Future<Response> get(String url,
+  Future<Response> get<T>(String url,
       {Map<String, dynamic>? params,
       CancelToken? cancelToken,
       Options? options}) async {
     Options requestOptions = options ?? Options();
-    return await _dio.get(url,
+    return await _dio.get<T>(url,
         queryParameters: params,
         cancelToken: cancelToken,
         options: requestOptions);
@@ -102,7 +103,7 @@ class RequestInterceptors extends Interceptor {
         // 清除token
         SharedPreferences prefs = await SharedPreferences.getInstance();
         prefs.remove("token");
-        // 跳转登录页
+        
       }
 
       return handler.next(response);

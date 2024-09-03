@@ -1,17 +1,32 @@
-class OrderItems {
+class OrderItem {
   final int id;
-  final String goods_title; //标题
-  final String goods_sku_title; //规格
-  final String goods_sku_price; //价格
+  final String goodsImage;
+  final String goodsTitle; //标题
+  final String goodsSkuTitle; //规格
+  final String goodsSkuPrice; //价格
   final int quantity; //数量
 
-  OrderItems({
+  OrderItem({
     required this.id,
-    required this.goods_title,
-    required this.goods_sku_title,
-    required this.goods_sku_price,
+    required this.goodsImage,
+    required this.goodsTitle,
+    required this.goodsSkuTitle,
+    required this.goodsSkuPrice,
     required this.quantity,
   });
+
+  factory OrderItem.fromJson(Map<String, dynamic> json) {
+    return OrderItem(
+      id: json['id'],
+      goodsImage: json['goods_image'],
+      goodsTitle: json['goods_title'],
+      goodsSkuTitle: json['goods_sku_title'],
+      goodsSkuPrice: json['goods_sku_price'],
+      quantity: json['quantity'],
+    );
+  }
+
+ 
 }
 
 class Order {
@@ -21,44 +36,46 @@ class Order {
   final int status;
   final String remark;
   final String number;
-  final String created_at;
+  final String createdAt;
 
-  // final List<OrderItems> order_items;
+  List<OrderItem> orderItems;
 
   Order({
-    required this.created_at,
+    required this.createdAt,
     required this.id,
     required this.amount,
     required this.freight,
     required this.status,
     required this.remark,
     required this.number,
-    // required this.order_items,
+    required this.orderItems,
   });
 
-  // 从 JSON 转换为 User 对象
   factory Order.fromJson(Map<String, dynamic> json) {
     return Order(
-      id: json['id'], created_at: '${json['created_at']}',
+      id: json['id'],
+      createdAt: '${json['created_at']}',
       amount: json['amount'],
       freight: json['freight'],
       status: json['status'],
       remark: json['remark'],
       number: json['number'],
-      // order_items: json['order_items'],
+      // orderItems: json['order_items'],
+      orderItems: (json['order_items'] as List)
+          .map((item) => OrderItem.fromJson(item))
+          .toList(),
     );
   }
 
-  // 将 User 对象转换为 JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'created_at': created_at,
-      'amount': amount,
-      'freight': freight,
-      'status': status,
-      'remark': remark,
-      'number': number,
-    };
-  }
+  // Map<String, dynamic> toJson() {
+  //   return {
+  //     'id': id,
+  //     'createdAt': createdAt,
+  //     'amount': amount,
+  //     'freight': freight,
+  //     'status': status,
+  //     'remark': remark,
+  //     'number': number,
+  //   };
+  // }
 }

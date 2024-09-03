@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
-import 'theme_color.dart';
+import 'type/theme_color.dart';
 import 'type/order.dart';
 import 'api.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'modules/toast_loading.dart';
+// import 'package:fluttertoast/fluttertoast.dart';
 
 class OrderView extends StatefulWidget {
   final int id; // 添加 id 属性
@@ -16,60 +17,85 @@ class OrderView extends StatefulWidget {
 
 class OrderViewState extends State<OrderView> {
   OrderTheme orderTheme = OrderTheme();
+  final ScrollController _scrollController = ScrollController();
 
   List<Order> orders = [];
-
-  final ScrollController _scrollController = ScrollController(); //listview的控制
-  int page = 1;
-  bool isLoading = false;
+  int currentPage = 1;
+  bool isLoadingMore = false;
+  bool hasMoreData = true;
 
   @override
   void didUpdateWidget(OrderView oldWidget) {
     super.didUpdateWidget(oldWidget);
     // 如果 id 发生变化，则重新获取数据
     if (oldWidget.id != widget.id) {
-      Logger().i("更新 ${widget.id}");
+      currentPage = 1;
+      hasMoreData = true;
+      orders = [];
+      onGetData();
     }
   }
 
   @override
   void initState() {
     super.initState();
-    Logger().i("初始化 ${widget.id}");
+    Logger(printer: PrettyPrinter(methodCount: 0))
+        .i("initState >>>>>>>>>>>>>>>>>>>>>>>>>> ${widget.id}");
     onGetData();
-    // _scrollController.addListener(() {
-    //   if (_scrollController.position.pixels ==
-    //       _scrollController.position.maxScrollExtent) {
-    //     _loadMore();
-    //   }
-    // });
   }
 
   void onGetData() async {
-    fetchOrderList(widget.id).then((value) {});
+    if (isLoadingMore || !hasMoreData) return;
+
+    setState(() {
+      isLoadingMore = true;
+    });
+    // 第一层获取数据
+    fetchOrderList(widget.id, currentPage, context).then((value) {
+      Logger(printer: PrettyPrinter(methodCount: 0)).i(value);
+
+      setState(() {
+        if (value.length < 10) {
+          hasMoreData = false;
+        }
+        orders = value;
+        isLoadingMore = false;
+      });
+
+      Logger().i("获取数据成功 >>>>>>>>>>>>>>>>>>>>>");
+    });
   }
 
-  Future _loadMore() async {
-    if (!isLoading) {
-      setState(() {
-        isLoading = true;
-      });
-      Logger().i("_loadMore");
+  // 加载更多订单
+  void loadMoreOrders() async {
+    if (isLoadingMore || !hasMoreData) return;
 
-      // await Future.delayed(const Duration(seconds: 1), () {
-      //   print('加载更多');
-      //   setState(() {
-      //     orders.addAll(List.generate(
-      //         5,
-      //         (i) => Order(
-      //             id: orders.length + i,
-      //             item: "商品A",
-      //             amount: 100.0,
-      //             time: '2022-12-12 12:12:12')));
-      //     page++;
-      //     isLoading = false;
-      //   });
-      // });
+    setState(() {
+      isLoadingMore = true;
+    });
+
+    List<Order>? moreOrders =
+        await fetchOrderList(widget.id, currentPage + 1, context);
+
+    setState(() {
+      if (moreOrders.length < 10) {
+        currentPage++;
+        hasMoreData = false;
+      }
+      orders.addAll(moreOrders);
+      isLoadingMore = false;
+    });
+  }
+
+  // 检查是否到达列表底部
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 50) {
+      Logger(printer: PrettyPrinter(methodCount: 0))
+          .i("到底了 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+
+      // loadMoreOrders();
     }
   }
 
@@ -77,20 +103,19 @@ class OrderViewState extends State<OrderView> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0), // 设置整体 Padding
-      child: Container(
+      child: SizedBox(
         width: double.infinity,
         child: RefreshIndicator(
           onRefresh: _onRefresh,
           child: ListView.builder(
-            // controller: _scrollController,
+            controller: _scrollController..addListener(_onScroll),
             itemCount: orders.length + 1,
             itemBuilder: (context, index) {
               if (index < orders.length) {
-                return OrderItem(order: orders[index]);
+                return OrderItemWidget(order: orders[index]);
               }
               return _getMoreWidget();
             },
-            controller: _scrollController,
           ),
         ),
       ),
@@ -98,20 +123,7 @@ class OrderViewState extends State<OrderView> {
   }
 
   Future<Null> _onRefresh() async {
-    print('下拉刷新');
-    await Future.delayed(const Duration(seconds: 3), () {
-      print('refresh');
-      setState(() {
-        // orders =
-        //  List.generate(
-        //     20,
-        //     (i) => Order(
-        //         id: 1,
-        //         item: "asdasd",
-        //         amount: 1.0,
-        //         time: '2022-12-12 12:12:12'));
-      });
-    });
+    Logger(printer: PrettyPrinter(methodCount: 0)).i("'下拉刷新 >>>>>>>>>>>>>'");
   }
 
   @override
@@ -121,20 +133,30 @@ class OrderViewState extends State<OrderView> {
   }
 
   Widget _getMoreWidget() {
-    return const Center(
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(10.0),
+        padding: const EdgeInsets.all(10.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              '加载中...',
-              style: TextStyle(fontSize: 16.0),
-            ),
-            CircularProgressIndicator(
-              strokeWidth: 1.0,
-            )
+            if (isLoadingMore) ...[
+              const Text(
+                '加载中...',
+                style: TextStyle(fontSize: 16.0),
+              ),
+              const SizedBox(width: 10.0),
+              const SizedBox(
+                width: 16.0,
+                height: 16.0,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.0,
+                ),
+              )
+            ],
+            if (!hasMoreData) ...[
+              const Text("没有更多了", style: TextStyle(fontSize: 16.0)),
+            ]
           ],
         ),
       ),
@@ -142,12 +164,11 @@ class OrderViewState extends State<OrderView> {
   }
 }
 
-class OrderItem extends StatelessWidget {
-  OrderTheme orderTheme = OrderTheme();
-
+class OrderItemWidget extends StatelessWidget {
+  final OrderTheme orderTheme = OrderTheme();
   final Order order;
 
-  OrderItem({super.key, required this.order});
+  OrderItemWidget({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
@@ -170,77 +191,120 @@ class OrderItem extends StatelessWidget {
         child: Column(
           // crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              decoration: BoxDecoration(
-                  border: Border(
-                      bottom: BorderSide(
-                          width: 1.0, color: orderTheme.borderColor))),
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text("订单号:${order.number}"),
-                    Text("时间:${order.created_at}"),
-                  ],
-                ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("订单号:${order.number}"),
+                  Text("创建时间:${order.createdAt}"),
+                ],
               ),
             ),
+            Divider(
+              color: orderTheme.borderColor,
+              thickness: 1.0,
+              height: 0,
+            ),
             Padding(
-                padding: const EdgeInsets.only(top: 17.0, bottom: 18.0),
-                child: Text("asd")
-                // Column(
-                //   children: order.order_items.map((index) {
-                //     return Row(
-                //       children: [
-                //         Image.network(
-                //           "https://api-jiufu.meseelink.com/storage/images/24/0902/10/G9jo96e26eYKhNo650ThoYenGzq5qZ364mg6Lsbq.jpg",
-                //           width: 100.0,
-                //           height: 100.0,
-                //         ),
-                //         const SizedBox(width: 20.0),
-                //         Column(
-                //           children: [
-                //             Text(order.created_at),
-                //             Text("数量：${order.amount}"),
-                //             Text("数量：${order.amount}"),
-                //           ],
-                //         )
-                //       ],
-                //     );
-                //   }).toList(),
-                // ),
-                ),
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                  border: Border(
-                      bottom: BorderSide(color: orderTheme.borderColor),
-                      top: BorderSide(color: orderTheme.borderColor))),
-              child: const Padding(
-                padding: EdgeInsets.only(top: 16.0, bottom: 16.0),
-                child: Text("asd"),
+              padding: const EdgeInsets.only(top: 17.0, bottom: 18.0),
+              child: Column(
+                children: order.orderItems.map((OrderItem orderItem) {
+                  return Row(
+                    children: [
+                      Image.network(
+                        orderItem.goodsImage,
+                        width: 100.0,
+                        height: 100.0,
+                      ),
+                      const SizedBox(width: 20.0),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            orderItem.goodsTitle,
+                            style: TextStyle(
+                              fontSize: 14.0,
+                              color: orderTheme.titleColor,
+                            ),
+                          ),
+                          const SizedBox(height: 12.0),
+                          Text(
+                            "规格: ${orderItem.goodsSkuTitle}",
+                            style: TextStyle(
+                                fontSize: 13.0, color: orderTheme.specColor),
+                          ),
+                          const SizedBox(height: 8.0),
+                          Text("数量: ${orderItem.quantity}",
+                              style: TextStyle(
+                                  fontSize: 13.0, color: orderTheme.specColor)),
+                        ],
+                      )
+                    ],
+                  );
+                }).toList(),
               ),
+            ),
+            Divider(
+              color: orderTheme.borderColor, // 线的颜色
+              thickness: 1.0, // 线的粗细
+              height: 0,
+            ),
+            SizedBox(
+              width: double.infinity,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 16.0, bottom: 16.0),
+                child: Text(order.remark),
+              ),
+            ),
+            Divider(
+              color: orderTheme.borderColor, // 线的颜色
+              thickness: 1.0, // 线的粗细
+              height: 0,
             ),
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 6.0, horizontal: 24.0), // 添加垂直内边距
-                      // minimumSize: const Size(75, 30),
-                      side: BorderSide(width: 1, color: orderTheme.activeColor),
+                  if (order.status == 1)
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 6.0, horizontal: 24.0), // 添加垂直内边距
+                        side:
+                            BorderSide(width: 1, color: orderTheme.activeColor),
+                      ),
+                      child: Text(
+                        "备菜",
+                        style: TextStyle(color: orderTheme.activeColor)
+                            .copyWith(fontSize: 14.0),
+                      ),
+                      onPressed: () {
+                        // 点击备菜
+                        LoadingExample().showLoadingDialog(context);
+
+                        // fetchOrderHandler(
+                        //     id: order.id,
+                        //     status: order.status,
+                        //     context: context);
+                      },
                     ),
-                    child: Text(
-                      "备菜",
-                      style: TextStyle(color: orderTheme.activeColor)
-                          .copyWith(fontSize: 14.0),
-                    ),
-                    onPressed: () {},
-                  )
+                  if (order.status == 2)
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 6.0, horizontal: 24.0),
+                        side:
+                            BorderSide(width: 1, color: orderTheme.activeColor),
+                      ),
+                      child: Text(
+                        "出菜",
+                        style: TextStyle(color: orderTheme.activeColor)
+                            .copyWith(fontSize: 14.0),
+                      ),
+                      onPressed: () {},
+                    )
                 ],
               ),
             )

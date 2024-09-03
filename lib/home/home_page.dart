@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:logger/logger.dart';
+// import 'package:logger/logger.dart';
 import 'order_list.dart';
-import 'theme_color.dart';
-
-import '../http/index.dart';
-
-// 2 备菜 3 出菜
+import 'type/theme_color.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -140,7 +136,8 @@ class BodyViewState extends State<BodyView> {
                 _handClickTest(_testList[index].id);
               },
               child: Text(
-                "${_testList[index].text}(${_testList[index].num})",
+                // (${_testList[index].num})
+                _testList[index].text,
                 style: TextStyle(
                   color: _focusedId == _testList[index].id
                       ? themeColor.activeColor
