@@ -33,6 +33,7 @@ class Order {
   final int id;
   final String amount;
   final String freight;
+  final int confirmed;
   final int status;
   final String remark;
   final String number;
@@ -44,6 +45,7 @@ class Order {
     required this.createdAt,
     required this.id,
     required this.amount,
+    required this.confirmed,
     required this.freight,
     required this.status,
     required this.remark,
@@ -56,6 +58,7 @@ class Order {
       id: json['id'],
       createdAt: '${json['created_at']}',
       amount: json['amount'],
+      confirmed: json['confirmed'],
       freight: json['freight'],
       status: json['status'],
       remark: json['remark'],

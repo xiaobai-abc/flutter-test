@@ -4,7 +4,7 @@ import 'type/theme_color.dart';
 import 'type/order.dart';
 import 'api.dart';
 import 'modules/toast_loading.dart';
-// import 'package:fluttertoast/fluttertoast.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class OrderView extends StatefulWidget {
   final int id; // 添加 id 属性
@@ -23,15 +23,20 @@ class OrderViewState extends State<OrderView> {
   int currentPage = 1;
   bool isLoadingMore = false;
   bool hasMoreData = true;
+  bool canLoadMore = true;
 
   @override
   void didUpdateWidget(OrderView oldWidget) {
     super.didUpdateWidget(oldWidget);
     // 如果 id 发生变化，则重新获取数据
     if (oldWidget.id != widget.id) {
-      currentPage = 1;
-      hasMoreData = true;
-      orders = [];
+      setState(() {
+        currentPage = 1;
+        isLoadingMore = false;
+        hasMoreData = true;
+        canLoadMore = true;
+        orders = [];
+      });
       onGetData();
     }
   }
@@ -84,19 +89,27 @@ class OrderViewState extends State<OrderView> {
       }
       orders.addAll(moreOrders);
       isLoadingMore = false;
+      canLoadMore = true;
     });
   }
 
   // 检查是否到达列表底部
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 50) {
+    if (_scrollController.position.pixels ==
+            _scrollController.position.maxScrollExtent &&
+        canLoadMore) {
+      canLoadMore = false;
       Logger(printer: PrettyPrinter(methodCount: 0))
           .i("到底了 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-
-      // loadMoreOrders();
+      loadMoreOrders();
     }
+
+    // if (_scrollController.position.pixels >=
+    //     _scrollController.position.maxScrollExtent - 100) {
+
+    //   //
+    // }
   }
 
   @override
@@ -105,26 +118,40 @@ class OrderViewState extends State<OrderView> {
       padding: const EdgeInsets.all(16.0), // 设置整体 Padding
       child: SizedBox(
         width: double.infinity,
-        child: RefreshIndicator(
-          onRefresh: _onRefresh,
-          child: ListView.builder(
-            controller: _scrollController..addListener(_onScroll),
-            itemCount: orders.length + 1,
-            itemBuilder: (context, index) {
-              if (index < orders.length) {
-                return OrderItemWidget(order: orders[index]);
-              }
-              return _getMoreWidget();
-            },
-          ),
+        child: ListView.builder(
+          controller: _scrollController..addListener(_onScroll),
+          itemCount: orders.length + 1,
+          itemBuilder: (context, index) {
+            if (index < orders.length) {
+              return OrderItemWidget(
+                order: orders[index],
+                onHandlerFuncton: () {
+                  Logger(printer: PrettyPrinter(methodCount: 0))
+                      .i("点击了 >>>>>>>>>>>>>>>>>>>>>>>>>> ${orders[index].id}");
+                  setState(() {
+                    currentPage = 1;
+                    hasMoreData = true;
+                    orders = [];
+                  });
+                  onGetData();
+                },
+              );
+            }
+            return _getMoreWidget();
+          },
         ),
+
+        //  RefreshIndicator(
+        //   onRefresh: _onRefresh,
+        //   child: ,
+        // ),
       ),
     );
   }
 
-  Future<Null> _onRefresh() async {
-    Logger(printer: PrettyPrinter(methodCount: 0)).i("'下拉刷新 >>>>>>>>>>>>>'");
-  }
+  // Future<Null> _onRefresh() async {
+  //   Logger(printer: PrettyPrinter(methodCount: 0)).i("'下拉刷新 >>>>>>>>>>>>>'");
+  // }
 
   @override
   void dispose() {
@@ -167,8 +194,10 @@ class OrderViewState extends State<OrderView> {
 class OrderItemWidget extends StatelessWidget {
   final OrderTheme orderTheme = OrderTheme();
   final Order order;
+  // 父级的方法
+  final void Function()? onHandlerFuncton;
 
-  OrderItemWidget({super.key, required this.order});
+  OrderItemWidget({super.key, required this.order, this.onHandlerFuncton});
 
   @override
   Widget build(BuildContext context) {
@@ -267,7 +296,7 @@ class OrderItemWidget extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  if (order.status == 1)
+                  if (order.confirmed == 1)
                     OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
@@ -284,13 +313,27 @@ class OrderItemWidget extends StatelessWidget {
                         // 点击备菜
                         LoadingExample().showLoadingDialog(context);
 
-                        // fetchOrderHandler(
-                        //     id: order.id,
-                        //     status: order.status,
-                        //     context: context);
+                        fetchOrderHandler(
+                                id: order.id, status: 2, context: context)
+                            .then((resp) {
+                          Logger(printer: PrettyPrinter(methodCount: 0))
+                              .i(resp);
+                          if (resp["code"] == 1) {
+                            Fluttertoast.showToast(msg: "备菜成功~");
+                            onHandlerFuncton!();
+                          } else {
+                            Fluttertoast.showToast(
+                                msg: resp["message"] ?? "失败~~");
+                          }
+
+                          Logger(printer: PrettyPrinter(methodCount: 0))
+                              .i(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+
+                          Navigator.of(context).pop();
+                        });
                       },
                     ),
-                  if (order.status == 2)
+                  if (order.confirmed == 2)
                     OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
@@ -303,7 +346,25 @@ class OrderItemWidget extends StatelessWidget {
                         style: TextStyle(color: orderTheme.activeColor)
                             .copyWith(fontSize: 14.0),
                       ),
-                      onPressed: () {},
+                      onPressed: () {
+                        // 出菜
+                        LoadingExample().showLoadingDialog(context);
+                        fetchOrderHandler(
+                                id: order.id, status: 3, context: context)
+                            .then((resp) {
+                          Logger(printer: PrettyPrinter(methodCount: 0))
+                              .i(resp);
+                          if (resp["code"] == 1) {
+                            Fluttertoast.showToast(msg: "出菜成功~");
+                            onHandlerFuncton!();
+                          } else {
+                            Fluttertoast.showToast(
+                                msg: resp["message"] ?? "失败~~");
+                          }
+
+                          Navigator.of(context).pop();
+                        });
+                      },
                     )
                 ],
               ),
