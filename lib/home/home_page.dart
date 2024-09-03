@@ -111,12 +111,12 @@ class BodyViewState extends State<BodyView> {
 
   // 用于跟踪哪个文本被聚焦
   final List<TextBlock> _testList = [
-    TextBlock(id: 0, text: "待处理", num: 10),
-    TextBlock(id: 1, text: "备菜中", num: 20),
-    TextBlock(id: 2, text: "已完成", num: 30),
+    TextBlock(id: 1, text: "待处理", num: 10),
+    TextBlock(id: 2, text: "备菜中", num: 20),
+    TextBlock(id: 3, text: "已完成", num: 30),
   ];
 
-  int _focusedId = 0;
+  int _focusedId = 1;
 
   void _handClickTest(int id) {
     setState(() {

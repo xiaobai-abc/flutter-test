@@ -174,7 +174,7 @@ class SubmitButton extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         // title: const Text('错误'),
         content: Text(message),
-        actions: <Widget>[
+        actions: [
           TextButton(
             child: const Text('确定'),
             onPressed: () {

@@ -88,9 +88,9 @@ class RequestInterceptors extends Interceptor {
   }
 
   @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
+  void onResponse(Response response, ResponseInterceptorHandler handler) async {
     _logger.e(response);
-    _logger.e(">>>>>>>>>>>>>>");
+    _logger.e("响应拦截>>>>>>>>>>>>>>");
 
     if (response.statusCode != 200 && response.statusCode != 201) {
       handler.reject(DioException(
@@ -98,6 +98,13 @@ class RequestInterceptors extends Interceptor {
           response: response,
           type: DioExceptionType.badResponse));
     } else {
+      if (response.data['code'] == 401) {
+        // 清除token
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        prefs.remove("token");
+        // 跳转登录页
+      }
+
       return handler.next(response);
     }
   }
@@ -105,6 +112,8 @@ class RequestInterceptors extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     // final exception = HttpException(err.message ?? "error message");
+    Logger().d(err);
+    Logger().d("进入 onERROR");
     switch (err.type) {
       case DioExceptionType.badResponse:
         {

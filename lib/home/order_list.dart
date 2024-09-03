@@ -1,20 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'theme_color.dart';
-import '../http/index.dart';
-
-class Order {
-  final int id;
-  final String item;
-  final double amount;
-  final String time;
-
-  Order(
-      {required this.id,
-      required this.item,
-      required this.amount,
-      required this.time});
-}
+import 'type/order.dart';
+import 'api.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class OrderView extends StatefulWidget {
   final int id; // 添加 id 属性
@@ -28,26 +17,11 @@ class OrderView extends StatefulWidget {
 class OrderViewState extends State<OrderView> {
   OrderTheme orderTheme = OrderTheme();
 
-  List<Order> orders = [
-    Order(id: 1, item: "商品A ", amount: 100.0, time: '2022-12-12 12:12:12'),
-    Order(id: 2, item: "商品B", amount: 200.0, time: '2022-12-12 12:12:12'),
-    Order(id: 3, item: "商品C", amount: 150.0, time: '2022-12-12 12:12:12'),
-    Order(id: 4, item: "商品D", amount: 300.0, time: '2022-12-12 12:12:12'),
-  ];
+  List<Order> orders = [];
 
   final ScrollController _scrollController = ScrollController(); //listview的控制
   int page = 1;
   bool isLoading = false;
-
-  final httpManager = HttpManager();
-
-// 获取列表数据
-  void onGetData() {
-    httpManager
-        .get("/store/order/list", params: {"status": "1"}).then((onValue) {
-      Logger().v(onValue.data);
-    });
-  }
 
   @override
   void didUpdateWidget(OrderView oldWidget) {
@@ -63,12 +37,16 @@ class OrderViewState extends State<OrderView> {
     super.initState();
     Logger().i("初始化 ${widget.id}");
     onGetData();
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels ==
-          _scrollController.position.maxScrollExtent) {
-        _loadMore();
-      }
-    });
+    // _scrollController.addListener(() {
+    //   if (_scrollController.position.pixels ==
+    //       _scrollController.position.maxScrollExtent) {
+    //     _loadMore();
+    //   }
+    // });
+  }
+
+  void onGetData() async {
+    fetchOrderList(widget.id).then((value) {});
   }
 
   Future _loadMore() async {
@@ -76,20 +54,22 @@ class OrderViewState extends State<OrderView> {
       setState(() {
         isLoading = true;
       });
-      await Future.delayed(const Duration(seconds: 1), () {
-        print('加载更多');
-        setState(() {
-          orders.addAll(List.generate(
-              5,
-              (i) => Order(
-                  id: orders.length + i,
-                  item: "商品A",
-                  amount: 100.0,
-                  time: '2022-12-12 12:12:12')));
-          page++;
-          isLoading = false;
-        });
-      });
+      Logger().i("_loadMore");
+
+      // await Future.delayed(const Duration(seconds: 1), () {
+      //   print('加载更多');
+      //   setState(() {
+      //     orders.addAll(List.generate(
+      //         5,
+      //         (i) => Order(
+      //             id: orders.length + i,
+      //             item: "商品A",
+      //             amount: 100.0,
+      //             time: '2022-12-12 12:12:12')));
+      //     page++;
+      //     isLoading = false;
+      //   });
+      // });
     }
   }
 
@@ -122,13 +102,14 @@ class OrderViewState extends State<OrderView> {
     await Future.delayed(const Duration(seconds: 3), () {
       print('refresh');
       setState(() {
-        orders = List.generate(
-            20,
-            (i) => Order(
-                id: 1,
-                item: "asdasd",
-                amount: 1.0,
-                time: '2022-12-12 12:12:12'));
+        // orders =
+        //  List.generate(
+        //     20,
+        //     (i) => Order(
+        //         id: 1,
+        //         item: "asdasd",
+        //         amount: 1.0,
+        //         time: '2022-12-12 12:12:12'));
       });
     });
   }
@@ -199,36 +180,37 @@ class OrderItem extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text("订单号:${order.id}"),
-                    Text("时间:${order.time}"),
+                    Text("订单号:${order.number}"),
+                    Text("时间:${order.created_at}"),
                   ],
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.only(top: 17.0, bottom: 18.0),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Image.network(
-                        "https://api-jiufu.meseelink.com/storage/images/24/0902/10/G9jo96e26eYKhNo650ThoYenGzq5qZ364mg6Lsbq.jpg",
-                        width: 100.0,
-                        height: 100.0,
-                      ),
-                      const SizedBox(width: 20.0),
-                      Column(
-                        children: [
-                          Text(order.item),
-                          Text("数量：${order.amount}"),
-                          Text("数量：${order.amount}"),
-                        ],
-                      )
-                    ],
-                  )
-                ],
-              ),
-            ),
+                padding: const EdgeInsets.only(top: 17.0, bottom: 18.0),
+                child: Text("asd")
+                // Column(
+                //   children: order.order_items.map((index) {
+                //     return Row(
+                //       children: [
+                //         Image.network(
+                //           "https://api-jiufu.meseelink.com/storage/images/24/0902/10/G9jo96e26eYKhNo650ThoYenGzq5qZ364mg6Lsbq.jpg",
+                //           width: 100.0,
+                //           height: 100.0,
+                //         ),
+                //         const SizedBox(width: 20.0),
+                //         Column(
+                //           children: [
+                //             Text(order.created_at),
+                //             Text("数量：${order.amount}"),
+                //             Text("数量：${order.amount}"),
+                //           ],
+                //         )
+                //       ],
+                //     );
+                //   }).toList(),
+                // ),
+                ),
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
