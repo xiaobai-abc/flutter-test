@@ -90,8 +90,8 @@ class RequestInterceptors extends Interceptor {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
-    _logger.e(response);
-    _logger.e("响应拦截>>>>>>>>>>>>>>");
+    // _logger.e(response);
+    // _logger.e("响应拦截>>>>>>>>>>>>>>");
 
     if (response.statusCode != 200 && response.statusCode != 201) {
       handler.reject(DioException(

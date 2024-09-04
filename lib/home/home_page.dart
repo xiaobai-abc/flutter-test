@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 // import 'package:logger/logger.dart';
 import 'order_list.dart';
 import 'type/theme_color.dart';
+import './modules/modal_bluetooth.dart';
+import 'package:bluetooth_print/bluetooth_print.dart';
+import 'package:bluetooth_print/bluetooth_print_model.dart';
+import 'api.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,18 +15,76 @@ class HomePage extends StatefulWidget {
 }
 
 class _MyAppState extends State<HomePage> {
+  bool _isConnected = false; // 是否已经连接蓝牙
+  BluetoothPrint bluetoothPrint = BluetoothPrint.instance;
+
   @override
   void initState() {
     super.initState();
+    initBlueToothState();
   }
 
-  Future<int?> _show(BuildContext context) async {
-    return showModalBottomSheet(
-        backgroundColor: Colors.transparent,
-        isDismissible: true,
-        isScrollControlled: true,
-        context: context,
-        builder: (BuildContext context) => const Text("adasd"));
+  void initBlueToothState() async {
+    bool isConnected = await bluetoothPrint.isConnected ?? false;
+    // Logger(printer: PrettyPrinter(methodCount: 0))
+    //     .e("home init state ${a.toString()}");
+    setState(() {
+      _isConnected = isConnected;
+    });
+  }
+
+  // 打印机输出
+  void handPrint() async {
+    Map<String, dynamic> config = {};
+    List<LineText> list = [];
+    list.add(LineText(
+        fontZoom: 2,
+        type: LineText.TYPE_TEXT,
+        content: '中文测试',
+        // content: 'asdasdasd',
+        weight: 1,
+        align: LineText.ALIGN_CENTER,
+        linefeed: 1));
+    list.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: '-------------------------------',
+        weight: 0,
+        linefeed: 1));
+    list.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: '*******************************',
+        weight: 1,
+        linefeed: 1));
+    list.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: '-------------其他---------------',
+        weight: 1,
+        // align: LineText.ALIGN_LEFT,
+        linefeed: 1));
+    list.add(LineText(
+        type: LineText.TYPE_TEXT, content: '左', align: LineText.ALIGN_LEFT));
+    list.add(LineText(
+        type: LineText.TYPE_TEXT, content: '右面', align: LineText.ALIGN_RIGHT));
+    list.add(LineText(linefeed: 1));
+    list.add(LineText(
+        type: LineText.TYPE_BARCODE,
+        content: 'A12312112',
+        size: 10,
+        align: LineText.ALIGN_CENTER,
+        linefeed: 1));
+    list.add(LineText(linefeed: 1));
+    list.add(LineText(
+        type: LineText.TYPE_QRCODE,
+        content: 'qrcode i',
+        size: 10,
+        align: LineText.ALIGN_CENTER,
+        linefeed: 1));
+    list.add(LineText(linefeed: 1));
+
+    // List<int> imageBytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    // String base64Image = base64Encode(imageBytes);
+
+    await bluetoothPrint.printReceipt(config, list);
   }
 
   @override
@@ -51,12 +113,21 @@ class _MyAppState extends State<HomePage> {
           ),
         ),
         actions: [
+          IconButton(
+            onPressed: () {
+              handPrint(); // 打印
+            },
+            icon: const Icon(Icons.print_outlined),
+          ),
+
+          const SizedBox(width: 16), // 两个图标之间的间距
           TextButton.icon(
             onPressed: () {
               _show(context); //调用底部弹框
             },
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF828282),
+              foregroundColor:
+                  _isConnected ? Colors.blue : const Color(0xFF333333),
               textStyle: const TextStyle(fontSize: 14),
             ),
             icon: const Icon(Icons.print_outlined),
@@ -65,10 +136,11 @@ class _MyAppState extends State<HomePage> {
 
           const SizedBox(width: 16), // 两个图标之间的间距
           TextButton(
-            onPressed: () {
+            onPressed: () async {
+              await fetchLogout(context);
               // 点击按钮时导航到登录页面，并移除所有之前的路由
               Navigator.of(context)
-                  .pushNamedAndRemoveUntil('/', (route) => false);
+                  .pushNamedAndRemoveUntil('/login', (route) => false);
             },
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xFF828282),
@@ -79,7 +151,7 @@ class _MyAppState extends State<HomePage> {
           const SizedBox(width: 40), // 设置右侧间距
         ],
       ),
-      body: BodyView(),
+      body: const BodyView(),
 
       // Container(
       //   width: double.infinity,
@@ -91,6 +163,21 @@ class _MyAppState extends State<HomePage> {
       //   child: ,
       // ),
     );
+  }
+
+  Future<int?> _show(BuildContext context) async {
+    return showModalBottomSheet(
+        backgroundColor: Colors.transparent,
+        isDismissible: true,
+        isScrollControlled: true,
+        context: context,
+        builder: (BuildContext context) => ModalBluetooth(
+              onHandCallback: (bool vbool) {
+                setState(() {
+                  _isConnected = vbool;
+                });
+              },
+            ));
   }
 }
 

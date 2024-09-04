@@ -57,8 +57,6 @@ class OrderViewState extends State<OrderView> {
     });
     // 第一层获取数据
     fetchOrderList(widget.id, currentPage, context).then((value) {
-      Logger(printer: PrettyPrinter(methodCount: 0)).i(value);
-
       setState(() {
         if (value.length < 10) {
           hasMoreData = false;
@@ -67,7 +65,8 @@ class OrderViewState extends State<OrderView> {
         isLoadingMore = false;
       });
 
-      Logger().i("获取数据成功 >>>>>>>>>>>>>>>>>>>>>");
+      Logger(printer: PrettyPrinter(methodCount: 0))
+          .i("获取数据成功 >>>>>>>>>>>>>>>>>>>>>");
     });
   }
 
@@ -317,17 +316,15 @@ class OrderItemWidget extends StatelessWidget {
                                 id: order.id, status: 2, context: context)
                             .then((resp) {
                           Logger(printer: PrettyPrinter(methodCount: 0))
-                              .i(resp);
-                          if (resp["code"] == 1) {
+                              .i("点击备菜 >>>>>>>>>>>> ${resp.toString()}");
+
+                          if (resp != null) {
                             Fluttertoast.showToast(msg: "备菜成功~");
                             onHandlerFuncton!();
-                          } else {
-                            Fluttertoast.showToast(
-                                msg: resp["message"] ?? "失败~~");
                           }
 
                           Logger(printer: PrettyPrinter(methodCount: 0))
-                              .i(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+                              .i("点击备菜 >>>>>>>>>>>> 处理结束");
 
                           Navigator.of(context).pop();
                         });
@@ -353,15 +350,15 @@ class OrderItemWidget extends StatelessWidget {
                                 id: order.id, status: 3, context: context)
                             .then((resp) {
                           Logger(printer: PrettyPrinter(methodCount: 0))
-                              .i(resp);
-                          if (resp["code"] == 1) {
+                              .i("点击出菜 >>>>>>>>>>>> ${resp.toString()}");
+
+                          if (resp != null) {
                             Fluttertoast.showToast(msg: "出菜成功~");
                             onHandlerFuncton!();
-                          } else {
-                            Fluttertoast.showToast(
-                                msg: resp["message"] ?? "失败~~");
                           }
 
+                          Logger(printer: PrettyPrinter(methodCount: 0))
+                              .i("点击出菜 >>>>>>>>>>>>  处理结束");
                           Navigator.of(context).pop();
                         });
                       },
