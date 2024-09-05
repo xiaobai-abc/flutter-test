@@ -103,7 +103,6 @@ class RequestInterceptors extends Interceptor {
         // 清除token
         SharedPreferences prefs = await SharedPreferences.getInstance();
         prefs.remove("token");
-        
       }
 
       return handler.next(response);
@@ -113,8 +112,8 @@ class RequestInterceptors extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     // final exception = HttpException(err.message ?? "error message");
-    Logger().d(err);
-    Logger().d("进入 onERROR");
+    Logger(printer: PrettyPrinter(methodCount: 0)).e(err);
+    Logger(printer: PrettyPrinter(methodCount: 0)).e("进入 onERROR");
     switch (err.type) {
       case DioExceptionType.badResponse:
         {

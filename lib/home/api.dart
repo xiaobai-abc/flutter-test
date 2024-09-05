@@ -58,5 +58,5 @@ Future fetchOrderHandler({
 // 点击退出登录
 Future fetchLogout(BuildContext context) async {
   final httpManager = HttpManager();
-  return httpManager.get("/store/logout");
+  return httpManager.post("/store/logout");
 }

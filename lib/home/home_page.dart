@@ -1,11 +1,35 @@
 import 'package:flutter/material.dart';
-// import 'package:logger/logger.dart';
+import 'package:logger/logger.dart';
 import 'order_list.dart';
 import 'type/theme_color.dart';
 import './modules/modal_bluetooth.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:bluetooth_print/bluetooth_print.dart';
 import 'package:bluetooth_print/bluetooth_print_model.dart';
 import 'api.dart';
+import 'dart:io';
+import 'dart:convert';
+
+class HomeData extends InheritedWidget {
+  final int updateCount;
+  final Function(dynamic) handelUpdateFun;
+
+  const HomeData({
+    super.key,
+    required this.updateCount,
+    required this.handelUpdateFun,
+    required super.child,
+  });
+
+  static HomeData? of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<HomeData>();
+  }
+
+  @override
+  bool updateShouldNotify(HomeData oldWidget) {
+    return updateCount != oldWidget.updateCount;
+  }
+}
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,26 +41,83 @@ class HomePage extends StatefulWidget {
 class _MyAppState extends State<HomePage> {
   bool _isConnected = false; // 是否已经连接蓝牙
   BluetoothPrint bluetoothPrint = BluetoothPrint.instance;
+  late WebSocket _socket;
+  int updateCount = 1;
+
+  dynamic handelUpdateFun(dynamic a) {
+    setState(() {
+      updateCount++;
+    });
+    Logger(printer: PrettyPrinter(methodCount: 0))
+        .d("handelUpdateFun : >>>>>>>>>>>>>>>>> ${a}");
+  }
 
   @override
   void initState() {
     super.initState();
     initBlueToothState();
+    initSocket();
+  }
+
+  void initSocket() async {
+    // 更新order
+    // HomeData.of(context)?.handelUpdateFun((counter ?? 1) + 1);
+
+    try {
+      _socket = await WebSocket.connect(
+          "wss://api-jiufu.meseelink.com/socketurl?token=mesee&store_id=1");
+
+      if (_socket.readyState == WebSocket.open) {
+        Fluttertoast.showToast(msg: "socket 连接成功~~~");
+
+        _socket.listen((onData) {
+          print("【WebSocket】接收到消息 == > $onData");
+        }, onError: (error) {
+          print("【WebSocket】错误 == > $error");
+        }, onDone: () {
+          print("【WebSocket】结束链接");
+        });
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "socket 连接失败~~~");
+
+      // Logger(printer: PrettyPrinter(methodCount: 0))
+      //     .e("连接失败 >>>>>>>>>>>>>>>>>>  ${e}");
+    }
   }
 
   void initBlueToothState() async {
+    // 先获取初始状态
     bool isConnected = await bluetoothPrint.isConnected ?? false;
-    // Logger(printer: PrettyPrinter(methodCount: 0))
-    //     .e("home init state ${a.toString()}");
+
     setState(() {
       _isConnected = isConnected;
     });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _socket.close();
   }
 
   // 打印机输出
   void handPrint() async {
     Map<String, dynamic> config = {};
     List<LineText> list = [];
+    config['width'] = 20;
+    config['height'] = 70;
+    config['gap'] = 2;
+    // try {
+    //   _socket.add("1:ok");
+    // } catch (e) {
+    //   Fluttertoast.showToast(msg: "订单打印失败~~~");
+    // }
+
+    // setState(() {
+    //   updateCount++;
+    // });
+
     list.add(LineText(
         fontZoom: 2,
         type: LineText.TYPE_TEXT,
@@ -47,7 +128,12 @@ class _MyAppState extends State<HomePage> {
         linefeed: 1));
     list.add(LineText(
         type: LineText.TYPE_TEXT,
-        content: '-------------------------------',
+        content: '--------------------------------',
+        weight: 0,
+        linefeed: 1));
+    list.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: '----------------------------------',
         weight: 0,
         linefeed: 1));
     list.add(LineText(
@@ -62,25 +148,14 @@ class _MyAppState extends State<HomePage> {
         // align: LineText.ALIGN_LEFT,
         linefeed: 1));
     list.add(LineText(
-        type: LineText.TYPE_TEXT, content: '左', align: LineText.ALIGN_LEFT));
+        type: LineText.TYPE_TEXT,
+        content: '左',
+        align: LineText.ALIGN_LEFT,
+        linefeed: 1));
     list.add(LineText(
         type: LineText.TYPE_TEXT, content: '右面', align: LineText.ALIGN_RIGHT));
     list.add(LineText(linefeed: 1));
-    list.add(LineText(
-        type: LineText.TYPE_BARCODE,
-        content: 'A12312112',
-        size: 10,
-        align: LineText.ALIGN_CENTER,
-        linefeed: 1));
-    list.add(LineText(linefeed: 1));
-    list.add(LineText(
-        type: LineText.TYPE_QRCODE,
-        content: 'qrcode i',
-        size: 10,
-        align: LineText.ALIGN_CENTER,
-        linefeed: 1));
-    list.add(LineText(linefeed: 1));
-
+   
     // List<int> imageBytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
     // String base64Image = base64Encode(imageBytes);
 
@@ -151,17 +226,11 @@ class _MyAppState extends State<HomePage> {
           const SizedBox(width: 40), // 设置右侧间距
         ],
       ),
-      body: const BodyView(),
-
-      // Container(
-      //   width: double.infinity,
-      //   height: double.infinity,
-      //   decoration: const BoxDecoration(
-      //     // border: Border.all(color: Colors.blue, width: 2), // 设置边框颜色和宽度
-      //     border: Border(top: BorderSide(color: Color(0xFFF2F2F2), width: 1.0)),
-      //   ),
-      //   child: ,
-      // ),
+      body: HomeData(
+        updateCount: updateCount,
+        handelUpdateFun: handelUpdateFun,
+        child: BodyView(),
+      ),
     );
   }
 
@@ -183,7 +252,10 @@ class _MyAppState extends State<HomePage> {
 
 // 内容
 class BodyView extends StatefulWidget {
-  const BodyView({super.key});
+  const BodyView({
+    super.key,
+  });
+
   @override
   BodyViewState createState() => BodyViewState();
 }
@@ -202,14 +274,20 @@ class BodyViewState extends State<BodyView> {
   int _focusedId = 1;
 
   void _handClickTest(int id) {
-    setState(() {
-      // 切换该项的聚焦状态
-      _focusedId = id;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() {
+        // 切换该项的聚焦状态
+        _focusedId = id;
+        // 通过 GlobalKey 访问当前渲染的 OrderViewState 实例
+        // widget.orderViewKey.currentState?.setOrderStatus(id);
+      });
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // 使用 of 方法获取 InheritedWidget 的实例对象
+    final counter = HomeData.of(context)?.updateCount;
     return Column(children: [
       Container(
         color: themeColor.bgColor,
@@ -237,7 +315,10 @@ class BodyViewState extends State<BodyView> {
         ),
       ),
       Expanded(
-        child: OrderView(id: _focusedId),
+        child: OrderView(
+          id: _focusedId,
+          updateCount: counter ?? 1,
+        ),
       )
     ]);
   }

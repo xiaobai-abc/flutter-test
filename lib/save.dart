@@ -18,3 +18,19 @@ class Save {
     logger.wtf('wtf');
   }
 }
+
+ // list.add(LineText(
+    //     type: LineText.TYPE_BARCODE,
+    //     content: 'A12312112',
+    //     size: 10,
+    //     align: LineText.ALIGN_CENTER,
+    //     linefeed: 1));
+    // list.add(LineText(linefeed: 1));
+    // list.add(LineText(
+    //     type: LineText.TYPE_QRCODE,
+    //     content: 'qrcode i',
+    //     size: 10,
+    //     align: LineText.ALIGN_CENTER,
+    //     linefeed: 1));
+    // list.add(LineText(linefeed: 1));
+

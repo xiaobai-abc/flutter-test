@@ -7,9 +7,20 @@ import 'modules/toast_loading.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 class OrderView extends StatefulWidget {
-  final int id; // 添加 id 属性
+  int id;
+  int updateCount;
 
-  const OrderView({super.key, required this.id}); // 接收 id 的构造函数
+  OrderView({super.key, required this.id, required this.updateCount});
+  // 静态实例
+  // static const OrderView _instance = OrderView._internal();
+
+  // 私有构造函数，接收可选的 key 参数
+  // const OrderView._internal({super.key});
+
+  // 提供公共的访问点
+  // factory OrderView({Key? key}) {
+  //   return _instance;
+  // }
 
   @override
   OrderViewState createState() => OrderViewState();
@@ -21,6 +32,7 @@ class OrderViewState extends State<OrderView> {
 
   List<Order> orders = [];
   int currentPage = 1;
+  int status = 1; // 订单状态 1 待处理 2 备菜中 3 已完成 请求数据
   bool isLoadingMore = false;
   bool hasMoreData = true;
   bool canLoadMore = true;
@@ -30,22 +42,32 @@ class OrderViewState extends State<OrderView> {
     super.didUpdateWidget(oldWidget);
     // 如果 id 发生变化，则重新获取数据
     if (oldWidget.id != widget.id) {
-      setState(() {
-        currentPage = 1;
-        isLoadingMore = false;
-        hasMoreData = true;
-        canLoadMore = true;
-        orders = [];
-      });
-      onGetData();
+      resetInitData();
     }
+    if (oldWidget.updateCount != widget.updateCount) {
+      Logger(printer: PrettyPrinter(methodCount: 0))
+          .e("updateCount <<<<<<<<<<<<<<<<<<< : ${widget.updateCount}");
+      // resetInitData();
+    }
+  }
+
+  // 重置所有状态 重新获取数据
+  void resetInitData() {
+    setState(() {
+      currentPage = 1;
+      isLoadingMore = false;
+      hasMoreData = true;
+      canLoadMore = true;
+      orders = [];
+    });
+
+    onGetData();
   }
 
   @override
   void initState() {
     super.initState();
-    Logger(printer: PrettyPrinter(methodCount: 0))
-        .i("initState >>>>>>>>>>>>>>>>>>>>>>>>>> ${widget.id}");
+
     onGetData();
   }
 
