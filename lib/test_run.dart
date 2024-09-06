@@ -1,7 +1,4 @@
-void main() {
-  var a = Resp(a: "a", b: "b");
-  print(a.a);
-}
+void main() {}
 
 class Resp {
   final String a;

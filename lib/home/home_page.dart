@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'order_list.dart';
+import 'type/order.dart';
 import 'type/theme_color.dart';
 import './modules/modal_bluetooth.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -8,7 +11,6 @@ import 'package:bluetooth_print/bluetooth_print.dart';
 import 'package:bluetooth_print/bluetooth_print_model.dart';
 import 'api.dart';
 import 'dart:io';
-import 'dart:convert';
 
 class HomeData extends InheritedWidget {
   final int updateCount;
@@ -48,8 +50,6 @@ class _MyAppState extends State<HomePage> {
     setState(() {
       updateCount++;
     });
-    Logger(printer: PrettyPrinter(methodCount: 0))
-        .d("handelUpdateFun : >>>>>>>>>>>>>>>>> ${a}");
   }
 
   @override
@@ -65,25 +65,46 @@ class _MyAppState extends State<HomePage> {
 
     try {
       _socket = await WebSocket.connect(
-          "wss://api-jiufu.meseelink.com/socketurl?token=mesee&store_id=1");
+          "wss://api-jiufu.meseelink.com/socketurl?token=YsoqE5xfBEac&store_id=1");
 
       if (_socket.readyState == WebSocket.open) {
-        Fluttertoast.showToast(msg: "socket 连接成功~~~");
+        Fluttertoast.showToast(msg: "连接成功~~~");
+        Logger(printer: PrettyPrinter(methodCount: 0))
+            .v("连接成功 >>>>>>>>>>>>>>>>>>>>  ");
 
-        _socket.listen((onData) {
-          print("【WebSocket】接收到消息 == > $onData");
+        // ========================
+
+        _socket.listen((data) {
+          Logger(printer: PrettyPrinter(methodCount: 0))
+              .v("接收到消息 >>>>>>>>>>>>>>>>>>>> $data");
+          if (data != null) {
+            final Order orderResult = Order.fromJson(jsonDecode(data));
+            // 获取数据 执行打印
+            handPrint(orderResult);
+          }
         }, onError: (error) {
-          print("【WebSocket】错误 == > $error");
+          Logger(printer: PrettyPrinter(methodCount: 0))
+              .e("错误 >>>>>>>>>>>>>>>>>>>>>>>> $error");
         }, onDone: () {
-          print("【WebSocket】结束链接");
+          Logger(printer: PrettyPrinter(methodCount: 0)).e("【WebSocket】结束链接");
+          trySocket();
         });
       }
     } catch (e) {
-      Fluttertoast.showToast(msg: "socket 连接失败~~~");
+      Fluttertoast.showToast(msg: "连接失败~~~");
 
-      // Logger(printer: PrettyPrinter(methodCount: 0))
-      //     .e("连接失败 >>>>>>>>>>>>>>>>>>  ${e}");
+      Logger(printer: PrettyPrinter(methodCount: 0))
+          .e("连接失败 >>>>>>>>>>>>>>>>>>  ${e}");
+      trySocket();
     }
+  }
+
+  void trySocket() async {
+    // 延迟 3 秒后执行操作
+    Future.delayed(Duration(seconds: 3), () {
+      Logger(printer: PrettyPrinter(methodCount: 0)).e("执行重新连接");
+      initSocket();
+    });
   }
 
   void initBlueToothState() async {
@@ -102,64 +123,213 @@ class _MyAppState extends State<HomePage> {
   }
 
   // 打印机输出
-  void handPrint() async {
+  void handPrint(Order? order) async {
     Map<String, dynamic> config = {};
     List<LineText> list = [];
-    config['width'] = 20;
-    config['height'] = 70;
-    config['gap'] = 2;
-    // try {
-    //   _socket.add("1:ok");
-    // } catch (e) {
-    //   Fluttertoast.showToast(msg: "订单打印失败~~~");
-    // }
 
-    // setState(() {
-    //   updateCount++;
-    // });
+    bool isConnected = await bluetoothPrint.isConnected ?? false;
+    if (isConnected != _isConnected) {
+      setState(() {
+        _isConnected = isConnected;
+      });
+    }
+    if (!isConnected) {
+      Fluttertoast.showToast(msg: "无设备连接 取消打印");
+      return;
+    }
+
+    // config['width'] = 20;
+    // config['height'] = 70;
+    // config['gap'] = 10;
+
+    if (order == null) {
+      Fluttertoast.showToast(
+        msg: "无订单信息 取消打印",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.TOP,
+        backgroundColor: const Color(0xFFf17f7d),
+        textColor: Colors.white,
+        fontSize: 16.0,
+        timeInSecForIosWeb: 1,
+        webPosition: "center", // 用于网页的精确位置
+      );
+      return;
+    }
 
     list.add(LineText(
-        fontZoom: 2,
+      type: LineText.TYPE_TEXT,
+      content: '玖福团膳智慧餐厅',
+      weight: 2,
+      align: LineText.ALIGN_CENTER,
+      linefeed: 1,
+    ));
+
+    // 分隔线
+    list.add(LineText(
+      type: LineText.TYPE_TEXT,
+      content: '********************************\n',
+      weight: 1,
+      align: LineText.ALIGN_CENTER,
+      linefeed: 1,
+    ));
+
+    // 订单编号
+    list.add(LineText(
+      type: LineText.TYPE_TEXT,
+      content: '订单编号: ${order.number}',
+      weight: 1,
+      align: LineText.ALIGN_LEFT,
+      linefeed: 1,
+    ));
+
+    list.add(LineText(
+      type: LineText.TYPE_TEXT,
+      content: '下单时间: ${order.createdAt}',
+      weight: 1,
+      align: LineText.ALIGN_LEFT,
+      linefeed: 1,
+    ));
+
+    list.add(LineText(
+      type: LineText.TYPE_TEXT,
+      content: '商品名称---------数量-------金额\n',
+      weight: 1,
+      align: LineText.ALIGN_LEFT,
+      linefeed: 1,
+    ));
+
+    // 商品内容
+
+    for (OrderItem item in order.orderItems) {
+      list.add(LineText(
         type: LineText.TYPE_TEXT,
-        content: '中文测试',
-        // content: 'asdasdasd',
+        content: formatLine(
+            item.goodsTitle, item.quantity, double.parse(item.goodsSkuPrice)),
         weight: 1,
-        align: LineText.ALIGN_CENTER,
-        linefeed: 1));
-    list.add(LineText(
-        type: LineText.TYPE_TEXT,
-        content: '--------------------------------',
-        weight: 0,
-        linefeed: 1));
-    list.add(LineText(
-        type: LineText.TYPE_TEXT,
-        content: '----------------------------------',
-        weight: 0,
-        linefeed: 1));
-    list.add(LineText(
-        type: LineText.TYPE_TEXT,
-        content: '*******************************',
-        weight: 1,
-        linefeed: 1));
-    list.add(LineText(
-        type: LineText.TYPE_TEXT,
-        content: '-------------其他---------------',
-        weight: 1,
-        // align: LineText.ALIGN_LEFT,
-        linefeed: 1));
-    list.add(LineText(
-        type: LineText.TYPE_TEXT,
-        content: '左',
         align: LineText.ALIGN_LEFT,
-        linefeed: 1));
+        linefeed: 1,
+      ));
+      list.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: "${item.goodsSkuTitle} \n",
+        weight: 1,
+        align: LineText.ALIGN_LEFT,
+        linefeed: 1,
+      ));
+    }
+
+    // list.add(LineText(
+    //   type: LineText.TYPE_TEXT,
+    //   content: '麻婆豆腐        1      18   18',
+    //   weight: 1,
+    //   align: LineText.ALIGN_LEFT,
+    //   linefeed: 1,
+    // ));
+
+    // 分隔线
     list.add(LineText(
-        type: LineText.TYPE_TEXT, content: '右面', align: LineText.ALIGN_RIGHT));
-    list.add(LineText(linefeed: 1));
-   
+      type: LineText.TYPE_TEXT,
+      content: '\n------------------------------',
+      weight: 1,
+      align: LineText.ALIGN_CENTER,
+      linefeed: 1,
+    ));
+    list.add(LineText(
+      type: LineText.TYPE_TEXT,
+      content: '商品小计: ${order.amount}',
+      weight: 2,
+      align: LineText.ALIGN_LEFT,
+      linefeed: 1,
+    ));
+
+    list.add(LineText(
+      type: LineText.TYPE_TEXT,
+      content: '运费: ${order.freight}',
+      weight: 2,
+      align: LineText.ALIGN_LEFT,
+      linefeed: 1,
+    ));
+
+    list.add(LineText(
+      type: LineText.TYPE_TEXT,
+      content: '优惠: ${order.couponAmount}',
+      weight: 2,
+      align: LineText.ALIGN_LEFT,
+      linefeed: 1,
+    ));
+
+    list.add(LineText(
+      type: LineText.TYPE_TEXT,
+      content: '合计: ${order.payAmount}',
+      weight: 2,
+      align: LineText.ALIGN_LEFT,
+      linefeed: 1,
+    ));
+
+    list.add(LineText(
+      type: LineText.TYPE_TEXT,
+      content: '支付方式: 在线支付',
+      weight: 2,
+      align: LineText.ALIGN_LEFT,
+      linefeed: 1,
+    ));
+    list.add(LineText(
+      type: LineText.TYPE_TEXT,
+      content: '备注: ${order.remark}',
+      weight: 2,
+      align: LineText.ALIGN_LEFT,
+      linefeed: 1,
+    ));
+
+    // 结语
+    list.add(LineText(
+      type: LineText.TYPE_TEXT,
+      content: '\n谢谢惠顾！欢迎下次光临！',
+      weight: 1,
+      align: LineText.ALIGN_CENTER,
+      linefeed: 1,
+    ));
+
+    // 分隔线
+    // list.add(LineText(
+    //   type: LineText.TYPE_TEXT,
+    //   content: '********************************\n',
+    //   weight: 1,
+    //   align: LineText.ALIGN_CENTER,
+    //   linefeed: 1,
+    // ));
+
+    // 空行
+    list.add(LineText(
+      type: LineText.TYPE_TEXT,
+      content: '\x1B\x64\x05',
+      weight: 1,
+      align: LineText.ALIGN_LEFT,
+      linefeed: 2,
+    ));
+
     // List<int> imageBytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
     // String base64Image = base64Encode(imageBytes);
 
-    await bluetoothPrint.printReceipt(config, list);
+    bluetoothPrint.printReceipt(config, list).then((onValue) {
+      // Logger(printer: PrettyPrinter(methodCount: 0))
+      //     .e("打印完成 >>>>>>>>>>>>>>>>>>>");
+      // Fluttertoast.showToast(msg: "打印完成");
+
+      try {
+        _socket.add("${order.id}:ok");
+        Fluttertoast.showToast(msg: "发送成功");
+      } catch (e) {
+        // Fluttertoast.showToast(msg: "订单打印失败~~~");
+      }
+      setState(() {
+        updateCount++;
+      });
+    }, onError: (error) {
+      //  Fluttertoast.showToast(msg: "打印完成");
+      Logger(printer: PrettyPrinter(methodCount: 0))
+          .e("error >>>>>>>>>>>>>>>>>>> ${error.toString()}");
+    });
   }
 
   @override
@@ -189,9 +359,7 @@ class _MyAppState extends State<HomePage> {
         ),
         actions: [
           IconButton(
-            onPressed: () {
-              handPrint(); // 打印
-            },
+            onPressed: () {},
             icon: const Icon(Icons.print_outlined),
           ),
 
@@ -211,11 +379,15 @@ class _MyAppState extends State<HomePage> {
 
           const SizedBox(width: 16), // 两个图标之间的间距
           TextButton(
-            onPressed: () async {
-              await fetchLogout(context);
-              // 点击按钮时导航到登录页面，并移除所有之前的路由
-              Navigator.of(context)
-                  .pushNamedAndRemoveUntil('/login', (route) => false);
+            onPressed: () {
+              fetchLogout(context).then((v) {
+                // 点击按钮时导航到登录页面，并移除所有之前的路由
+                Navigator.of(context)
+                    .pushNamedAndRemoveUntil('/login', (route) => false);
+                // 断开蓝牙
+                bluetoothPrint.disconnect();
+                _socket.close();
+              });
             },
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xFF828282),
@@ -242,11 +414,63 @@ class _MyAppState extends State<HomePage> {
         context: context,
         builder: (BuildContext context) => ModalBluetooth(
               onHandCallback: (bool vbool) {
+                Logger(printer: PrettyPrinter(methodCount: 0))
+                    .e("onHandCallback: $vbool");
                 setState(() {
                   _isConnected = vbool;
                 });
               },
             ));
+  }
+
+  String formatLine(
+    String name,
+    int quantity,
+    double price,
+  ) {
+    // 每个部分的最大字符宽度
+    int quantityWidth = 5; // 数量宽度
+    int priceWidth = 6; // 单价宽度
+    // int totalAmountWidth = 6; // 小计宽度
+    int totalWidth = 32;
+
+    // 计算菜品名称的可用宽度
+    int nameWidth = totalWidth - quantityWidth - priceWidth;
+    // - totalAmountWidth;
+
+    // 处理中文字符占两位的情况
+    int nameCharCount = 0;
+    StringBuffer formattedName = StringBuffer();
+
+    for (int i = 0; i < name.length; i++) {
+      String char = name[i];
+      if (RegExp(r'[\u4e00-\u9fa5]').hasMatch(char)) {
+        // 中文字符占两位
+        nameCharCount += 2;
+      } else {
+        // 英文字符占一位
+        nameCharCount += 1;
+      }
+
+      // 控制输出的字符数量，使之不超过可用宽度
+      if (nameCharCount <= nameWidth) {
+        formattedName.write(char);
+      } else {
+        break; // 超过宽度限制，退出循环
+      }
+    }
+
+    // 补足菜品名称的空格
+    formattedName.write(' ' * (nameWidth - nameCharCount));
+
+    // 格式化其他部分
+    String quantityStr = quantity.toString().padLeft(quantityWidth, ' ');
+    String priceStr = price.toStringAsFixed(2).padLeft(priceWidth, ' ');
+    // String totalStr = total.toStringAsFixed(2).padLeft(totalAmountWidth, ' ');
+
+    // 拼接各部分，形成完整的行
+    return formattedName.toString() + quantityStr + priceStr;
+    // + totalStr;
   }
 }
 

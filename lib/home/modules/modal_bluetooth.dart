@@ -170,7 +170,7 @@ class ModalBluetoothState extends State<ModalBluetooth> {
     });
 
     if (!mounted) return;
-    widget.onHandCallback(isConnected);
+
     if (isConnected) {
       setState(() {
         _connected = true;

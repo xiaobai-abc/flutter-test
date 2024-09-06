@@ -25,33 +25,34 @@ class OrderItem {
       quantity: json['quantity'],
     );
   }
-
- 
 }
 
 class Order {
   final int id;
-  final String amount;
-  final String freight;
+  final String amount; //商品小计
+  final String freight; // 运费
   final int confirmed;
   final int status;
   final String remark;
   final String number;
   final String createdAt;
+  final String payAmount; //支付钱
+  final String couponAmount; //优惠活动
 
   List<OrderItem> orderItems;
 
-  Order({
-    required this.createdAt,
-    required this.id,
-    required this.amount,
-    required this.confirmed,
-    required this.freight,
-    required this.status,
-    required this.remark,
-    required this.number,
-    required this.orderItems,
-  });
+  Order(
+      {required this.createdAt,
+      required this.id,
+      required this.amount,
+      required this.confirmed,
+      required this.freight,
+      required this.status,
+      required this.remark,
+      required this.number,
+      required this.orderItems,
+      required this.payAmount,
+      required this.couponAmount});
 
   factory Order.fromJson(Map<String, dynamic> json) {
     return Order(
@@ -63,6 +64,8 @@ class Order {
       status: json['status'],
       remark: json['remark'],
       number: json['number'],
+      payAmount: json['pay_amount'],
+      couponAmount: json['coupon_amount'],
       // orderItems: json['order_items'],
       orderItems: (json['order_items'] as List)
           .map((item) => OrderItem.fromJson(item))

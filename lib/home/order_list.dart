@@ -7,10 +7,10 @@ import 'modules/toast_loading.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 class OrderView extends StatefulWidget {
-  int id;
-  int updateCount;
+  final int id;
+  final int updateCount;
 
-  OrderView({super.key, required this.id, required this.updateCount});
+  const OrderView({super.key, required this.id, required this.updateCount});
   // 静态实例
   // static const OrderView _instance = OrderView._internal();
 
@@ -45,9 +45,9 @@ class OrderViewState extends State<OrderView> {
       resetInitData();
     }
     if (oldWidget.updateCount != widget.updateCount) {
-      Logger(printer: PrettyPrinter(methodCount: 0))
-          .e("updateCount <<<<<<<<<<<<<<<<<<< : ${widget.updateCount}");
-      // resetInitData();
+      // Logger(printer: PrettyPrinter(methodCount: 0))
+      //     .e("updateCount <<<<<<<<<<<<<<<<<<< : ${widget.updateCount}");
+      resetInitData();
     }
   }
 
