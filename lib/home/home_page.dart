@@ -42,6 +42,8 @@ class HomePage extends StatefulWidget {
 
 class _MyAppState extends State<HomePage> {
   bool _isConnected = false; // 是否已经连接蓝牙
+  bool _hasTryAgain = false; // 是否允许尝试 再次连接
+
   BluetoothPrint bluetoothPrint = BluetoothPrint.instance;
   late WebSocket _socket;
   int updateCount = 1;
@@ -55,6 +57,9 @@ class _MyAppState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    Logger(printer: PrettyPrinter(methodCount: 0))
+        .v("初始化:>>>>>>>>>>>>>>>>>>>>>.执行");
+    _hasTryAgain = true;
     initBlueToothState();
     initSocket();
   }
@@ -65,7 +70,7 @@ class _MyAppState extends State<HomePage> {
 
     try {
       _socket = await WebSocket.connect(
-          "wss://api-jiufu.meseelink.com/socketurl?token=YsoqE5xfBEac&store_id=1");
+          "wss://api-jiufu.meseelink.com/socketurla?token=YsoqE5xfBEac&store_id=1");
 
       if (_socket.readyState == WebSocket.open) {
         Fluttertoast.showToast(msg: "连接成功~~~");
@@ -100,8 +105,12 @@ class _MyAppState extends State<HomePage> {
   }
 
   void trySocket() async {
+    if (!_hasTryAgain) {
+      // false 禁止再次尝试
+      return;
+    }
     // 延迟 3 秒后执行操作
-    Future.delayed(Duration(seconds: 3), () {
+    Future.delayed(const Duration(seconds: 15), () {
       Logger(printer: PrettyPrinter(methodCount: 0)).e("执行重新连接");
       initSocket();
     });
@@ -120,6 +129,7 @@ class _MyAppState extends State<HomePage> {
   void dispose() {
     super.dispose();
     _socket.close();
+    _hasTryAgain = false; //拒接再次尝试
   }
 
   // 打印机输出
